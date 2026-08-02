@@ -1,0 +1,23 @@
+[
+  {
+    "id": "model-1785650158257",
+    "name": "PAHNPD1",
+    "line": "NB01",
+    "shift": "A",
+    "sku": "",
+    "materials": [
+      {
+        "name": "nkit",
+        "number": "123"
+      },
+      {
+        "name": "assdds",
+        "number": "1234"
+      },
+      {
+        "name": "asdad",
+        "number": "111"
+      }
+    ]
+  }
+]
