@@ -6,6 +6,7 @@ import AdminView from './components/AdminView'
 import HistoryView from './components/HistoryView'
 import UserView from './components/UserView'
 import { createModelEntry, normalizeMaterial, verifyScannedMaterial } from './utils/verifyMaterials'
+import { loadDataWithFallback, readStoredJSON, writeStoredJSON } from './utils/staticStorage'
 
 function App() {
   const [modelId, setModelId] = useState('')
@@ -40,91 +41,42 @@ function App() {
   const audioContextRef = useRef(null)
 
   useEffect(() => {
-    const loadModels = async () => {
-      try {
-        const response = await fetch('/api/models')
-        if (!response.ok) {
-          throw new Error('Failed to load models')
-        }
-        const models = await response.json()
-        setCatalog(Array.isArray(models) ? models : [])
-      } catch (error) {
-        console.error(error)
-        setAdminMessage('Unable to load models from backend.')
+    const loadAppData = async () => {
+      const storedModels = await loadDataWithFallback('/api/models', 'bomCatalog', [])
+      const catalogData = Array.isArray(storedModels) ? storedModels : []
+      setCatalog(catalogData)
+      if (!catalogData.length) {
+        setAdminMessage('No saved models yet. Add one from Admin mode.')
       }
+
+      const saved = await loadDataWithFallback('/api/history', 'savedBomHistory', [])
+      setSavedHistory(Array.isArray(saved) ? saved : [])
+
+      const storedHistory = readStoredJSON('bomScanHistory', [])
+      setHistory(Array.isArray(storedHistory) ? storedHistory : [])
     }
 
-    const loadSavedHistory = async () => {
-      try {
-        const response = await fetch('/api/history')
-        if (response.ok) {
-          const saved = await response.json()
-          if (Array.isArray(saved)) {
-            setSavedHistory(saved)
-            return
-          }
-        }
-      } catch (error) {
-        console.error('Unable to load saved history from backend.', error)
-      }
-
-      if (typeof window !== 'undefined') {
-        const storedSavedHistory = window.localStorage.getItem('savedBomHistory')
-        if (storedSavedHistory) {
-          try {
-            setSavedHistory(JSON.parse(storedSavedHistory))
-          } catch {
-            setSavedHistory([])
-          }
-        }
-      }
-    }
-
-    loadModels()
-    loadSavedHistory()
-
-    if (typeof window !== 'undefined') {
-      const storedHistory = window.localStorage.getItem('bomScanHistory')
-      if (storedHistory) {
-        try {
-          setHistory(JSON.parse(storedHistory))
-        } catch {
-          setHistory([])
-        }
-      }
-    }
+    loadAppData()
   }, [])
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem('bomScanHistory', JSON.stringify(history))
-    }
+    writeStoredJSON('bomScanHistory', history)
   }, [history])
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem('savedBomHistory', JSON.stringify(savedHistory))
-    }
-  }, [savedHistory])
+    writeStoredJSON('savedBomHistory', savedHistory)
 
-  useEffect(() => {
     if (!savedHistory.length || typeof window === 'undefined') {
       return
     }
 
-    const persistLocalSaved = async () => {
-      try {
-        await fetch('/api/history', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(savedHistory),
-        })
-      } catch {
-        // Keep local data if backend persistence fails.
-      }
-    }
-
-    persistLocalSaved()
+    fetch('/api/history', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(savedHistory),
+    }).catch(() => {
+      // Ignore backend sync failures and keep the local fallback.
+    })
   }, [savedHistory])
 
   const modelOptions = useMemo(() => {
@@ -194,34 +146,35 @@ function App() {
       materials: adminForm.materials,
     })
 
-    const endpoint = editingModelId ? `/api/models/${nextModel.id}` : '/api/models'
-    const method = editingModelId ? 'PUT' : 'POST'
-
     try {
-      const response = await fetch(endpoint, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(nextModel),
-      })
+      const endpoint = editingModelId ? `/api/models/${nextModel.id}` : '/api/models'
+      const method = editingModelId ? 'PUT' : 'POST'
 
-      if (!response.ok) {
-        throw new Error('Unable to save model')
+      try {
+        await fetch(endpoint, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(nextModel),
+        })
+      } catch {
+        // Fall back to local storage if the backend is unavailable.
       }
 
-      const savedModel = await response.json()
       setCatalog((previous) => {
-        const exists = previous.some((model) => model.id === savedModel.id)
-        if (exists) {
-          return previous.map((model) => (model.id === savedModel.id ? savedModel : model))
-        }
-        return [savedModel, ...previous]
+        const exists = previous.some((model) => model.id === nextModel.id)
+        const updatedCatalog = exists
+          ? previous.map((model) => (model.id === nextModel.id ? nextModel : model))
+          : [nextModel, ...previous]
+
+        writeStoredJSON('bomCatalog', updatedCatalog)
+        return updatedCatalog
       })
 
       setAdminMessage(editingModelId ? 'Model updated successfully.' : 'Model added successfully.')
       resetAdminForm()
     } catch (error) {
       console.error(error)
-      setAdminMessage('Could not save model. Check backend connection.')
+      setAdminMessage('Could not save model locally.')
     }
   }
 
@@ -238,15 +191,17 @@ function App() {
 
   const handleDeleteModel = async (modelIdToDelete) => {
     try {
-      const response = await fetch(`/api/models/${modelIdToDelete}`, {
-        method: 'DELETE',
-      })
-
-      if (!response.ok) {
-        throw new Error('Unable to delete model')
+      try {
+        await fetch(`/api/models/${modelIdToDelete}`, { method: 'DELETE' })
+      } catch {
+        // Fall back to local storage if the backend is unavailable.
       }
 
-      setCatalog((previous) => previous.filter((model) => model.id !== modelIdToDelete))
+      setCatalog((previous) => {
+        const updatedCatalog = previous.filter((model) => model.id !== modelIdToDelete)
+        writeStoredJSON('bomCatalog', updatedCatalog)
+        return updatedCatalog
+      })
       if (modelId === modelIdToDelete) {
         setModelId('')
         setLine('')
@@ -256,7 +211,7 @@ function App() {
       setAdminMessage('Model removed.')
     } catch (error) {
       console.error(error)
-      setAdminMessage('Could not delete model. Check backend connection.')
+      setAdminMessage('Could not delete model locally.')
     }
   }
 
