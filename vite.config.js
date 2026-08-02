@@ -5,6 +5,9 @@ import react from '@vitejs/plugin-react'
 export default defineConfig(({ mode }) => ({
   base: mode === 'production' ? '/Notebook-BOM-Verification/' : '/',
   plugins: [react()],
+  build: {
+    outDir: 'docs',
+  },
   server: {
     proxy: {
       '/api': 'http://localhost:4000',
