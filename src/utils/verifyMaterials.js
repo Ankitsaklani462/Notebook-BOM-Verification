@@ -71,3 +71,13 @@ export function verifyScannedMaterial(scannedValue, bomMaterials) {
   }
 }
 
+export function getCameraScanFeedbackMessage(result) {
+  if (!result) {
+    return ''
+  }
+
+  return result.isMatch
+    ? 'PASS — ready for the next scan.'
+    : 'NG — ready for the next scan.'
+}
+

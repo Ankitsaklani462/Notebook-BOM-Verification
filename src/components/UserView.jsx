@@ -26,6 +26,8 @@ function UserView({
   selectedModel,
   onModelChange,
   onVerifyMaterial,
+  onStartCameraScan,
+  onStopCameraScan,
   onOpenAdmin,
   onSaveSession,
   sessionSaved,
@@ -161,10 +163,10 @@ function UserView({
             {scanMode === 'camera' ? (
               <>
                 <div className="button-row">
-                  <button type="button" onClick={() => setIsScanning(true)} disabled={!scanningAllowed}>
+                  <button type="button" onClick={onStartCameraScan} disabled={!scanningAllowed}>
                     Start scan
                   </button>
-                  <button type="button" className="secondary" onClick={() => setIsScanning(false)}>
+                  <button type="button" className="secondary" onClick={onStopCameraScan}>
                     Stop scan
                   </button>
                 </div>

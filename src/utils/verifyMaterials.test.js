@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createModelEntry, normalizeMaterial, verifyScannedMaterial } from './verifyMaterials'
+import { createModelEntry, getCameraScanFeedbackMessage, normalizeMaterial, verifyScannedMaterial } from './verifyMaterials'
 
 describe('verifyMaterials utilities', () => {
   it('normalizes material values', () => {
@@ -30,5 +30,10 @@ describe('verifyScannedMaterial', () => {
 
     expect(result.isMatch).toBe(true)
     expect(result.material).toBe('p-1001')
+  })
+
+  it('returns a restart message for camera scans after pass or ng results', () => {
+    expect(getCameraScanFeedbackMessage({ isMatch: true })).toBe('PASS — ready for the next scan.')
+    expect(getCameraScanFeedbackMessage({ isMatch: false })).toBe('NG — ready for the next scan.')
   })
 })

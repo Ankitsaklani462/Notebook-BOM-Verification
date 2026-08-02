@@ -5,7 +5,7 @@ import './App.css'
 import AdminView from './components/AdminView'
 import HistoryView from './components/HistoryView'
 import UserView from './components/UserView'
-import { createModelEntry, normalizeMaterial, verifyScannedMaterial } from './utils/verifyMaterials'
+import { createModelEntry, getCameraScanFeedbackMessage, normalizeMaterial, verifyScannedMaterial } from './utils/verifyMaterials'
 import { loadDataWithFallback, readStoredJSON, writeStoredJSON } from './utils/staticStorage'
 
 function App() {
@@ -39,6 +39,7 @@ function App() {
   const scannerRef = useRef(null)
   const readerInputRef = useRef(null)
   const audioContextRef = useRef(null)
+  const cameraResumeTimeoutRef = useRef(null)
 
   useEffect(() => {
     const loadAppData = async () => {
@@ -206,7 +207,7 @@ function App() {
         setModelId('')
         setLine('')
         setShift('')
-        setIsScanning(false)
+        stopCameraScan()
       }
       setAdminMessage('Model removed.')
     } catch (error) {
@@ -241,6 +242,31 @@ function App() {
   const handleAdminFormFieldChange = (field, value) => {
     setAdminForm((current) => ({ ...current, [field]: value }))
   }
+
+  const clearCameraResumeTimer = () => {
+    if (cameraResumeTimeoutRef.current) {
+      window.clearTimeout(cameraResumeTimeoutRef.current)
+      cameraResumeTimeoutRef.current = null
+    }
+  }
+
+  const stopCameraScan = () => {
+    clearCameraResumeTimer()
+    setIsScanning(false)
+  }
+
+  const restartCameraScan = () => {
+    clearCameraResumeTimer()
+    setIsScanning(false)
+    cameraResumeTimeoutRef.current = window.setTimeout(() => {
+      setIsScanning(true)
+      cameraResumeTimeoutRef.current = null
+    }, 650)
+  }
+
+  useEffect(() => () => {
+    clearCameraResumeTimer()
+  }, [])
 
   const ensureAudioContext = async () => {
     if (typeof window === 'undefined' || typeof window.AudioContext === 'undefined') {
@@ -323,6 +349,12 @@ function App() {
     setHistory((previous) => [newEntry, ...previous])
     setSessionSaved(false)
     playResultFeedback(result.isMatch)
+
+    if (source === 'camera') {
+      setScanMessage(getCameraScanFeedbackMessage(result))
+      restartCameraScan()
+    }
+
     if (source === 'reader') {
       setReaderInput('')
       setTimeout(() => {
@@ -334,7 +366,7 @@ function App() {
   const handleModelChange = (event) => {
     const nextModelId = event.target.value
     setModelId(nextModelId)
-    setIsScanning(false)
+    stopCameraScan()
     setSessionSaved(false)
   }
 
@@ -485,7 +517,7 @@ function App() {
     setShift('')
     setSelectedDate('')
     setScanMode('')
-    setIsScanning(false)
+    stopCameraScan()
     setReaderInput('')
     setLastResult(null)
     setHistory([])
@@ -559,6 +591,8 @@ function App() {
             selectedModel={selectedModel}
             onModelChange={handleModelChange}
             onVerifyMaterial={handleVerifyMaterial}
+            onStartCameraScan={() => setIsScanning(true)}
+            onStopCameraScan={stopCameraScan}
             onOpenAdmin={() => setShowAdmin(true)}
             onOpenHistory={() => setShowHistory(true)}
             onSaveSession={handleSaveSession}
