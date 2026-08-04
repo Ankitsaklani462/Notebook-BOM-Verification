@@ -5,7 +5,7 @@ import './App.css'
 import AdminView from './components/AdminView'
 import HistoryView from './components/HistoryView'
 import UserView from './components/UserView'
-import { createModelEntry, getCameraScanFeedbackMessage, normalizeMaterial, verifyScannedMaterial } from './utils/verifyMaterials'
+import { createModelEntry, getCameraScanFeedbackMessage, isScannedMaterialMatchForBom, normalizeMaterial, verifyScannedMaterial } from './utils/verifyMaterials'
 import { loadDataWithFallback, readStoredJSON, writeStoredJSON } from './utils/staticStorage'
 
 function App() {
@@ -92,8 +92,7 @@ function App() {
   const bomMaterials = selectedModel?.materials ?? []
   const scanningAllowed = Boolean(modelId && selectedDate && line && shift)
   const allBomDone = bomMaterials.length > 0 && bomMaterials.every((material) => {
-    const normalized = normalizeMaterial(material)
-    return history.some((entry) => entry.isMatch && normalizeMaterial(entry.material) === normalized)
+    return history.some((entry) => entry.isMatch && isScannedMaterialMatchForBom(entry.material, material))
   })
   const lineOptions = useMemo(() => {
     const values = [...new Set(catalog.map((model) => model.line).filter(Boolean))]
@@ -111,7 +110,7 @@ function App() {
 
     return bomMaterials.map((material) => {
       const normalizedSource = normalizeMaterial(material)
-      const scannedTime = scannedMatches[normalizedSource]
+      const scannedTime = history.find((entry) => entry.isMatch && isScannedMaterialMatchForBom(entry.material, material))?.timestamp
       const displayLabel = typeof material === 'string'
         ? material
         : material.number

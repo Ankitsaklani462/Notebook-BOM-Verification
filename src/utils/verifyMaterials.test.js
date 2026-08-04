@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createModelEntry, getCameraScanFeedbackMessage, normalizeMaterial, verifyScannedMaterial } from './verifyMaterials'
+import { createModelEntry, getCameraScanFeedbackMessage, isScannedMaterialMatchForBom, normalizeMaterial, verifyScannedMaterial } from './verifyMaterials'
 
 describe('verifyMaterials utilities', () => {
   it('normalizes material values', () => {
@@ -37,6 +37,19 @@ describe('verifyScannedMaterial', () => {
 
     expect(result.isMatch).toBe(true)
     expect(result.material).toBe('qr-data: p-1001 | steel cover')
+  })
+
+  it('matches when the BOM entry is stored as a combined string containing the part number and extra text', () => {
+    const result = verifyScannedMaterial('qr-data: P-1001 | steel cover', ['P-1001 Steel Cover', 'P-1002 Aluminum Frame'])
+
+    expect(result.isMatch).toBe(true)
+    expect(result.material).toBe('qr-data: p-1001 | steel cover')
+  })
+
+  it('matches a single BOM material even when the scanned text contains extra details', () => {
+    const result = isScannedMaterialMatchForBom('qr-data: P-1001 | steel cover', { name: 'Steel Cover', number: 'P-1001' })
+
+    expect(result).toBe(true)
   })
 
   it('returns a restart message for camera scans after pass or ng results', () => {

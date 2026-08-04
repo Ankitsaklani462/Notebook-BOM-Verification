@@ -85,9 +85,18 @@ function containsMaterialToken(value, token) {
     return false
   }
 
-  const tokens = getMaterialTokens(normalizedValue)
+  if (normalizedValue === normalizedToken || normalizedValue.includes(normalizedToken) || normalizedToken.includes(normalizedValue)) {
+    return true
+  }
 
-  return tokens.includes(normalizedToken) || normalizedValue.includes(normalizedToken)
+  const valueTokens = getMaterialTokens(normalizedValue)
+  const tokenTokens = getMaterialTokens(normalizedToken)
+
+  if (!tokenTokens.length) {
+    return false
+  }
+
+  return tokenTokens.every((part) => valueTokens.includes(part) || normalizedValue.includes(part))
 }
 
 export function verifyScannedMaterial(scannedValue, bomMaterials) {
@@ -104,6 +113,14 @@ export function verifyScannedMaterial(scannedValue, bomMaterials) {
     material: normalizedInput,
     matchedMaterial: matchedMaterial ? normalizeMaterial(matchedMaterial) : null,
   }
+}
+
+export function isScannedMaterialMatchForBom(scannedValue, bomMaterial) {
+  if (!bomMaterial) {
+    return false
+  }
+
+  return verifyScannedMaterial(scannedValue, [bomMaterial]).isMatch
 }
 
 export function getCameraScanFeedbackMessage(result) {

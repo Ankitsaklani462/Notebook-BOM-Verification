@@ -1,22 +1,58 @@
 [
   {
-    "id": "model-1785650158257",
+    "id": "model-1785838987193",
     "name": "PAHNPD1",
     "line": "NB01",
     "shift": "A",
     "sku": "",
     "materials": [
       {
-        "name": "nkit",
-        "number": "123"
+        "name": "Plastic shell;PC;",
+        "number": "312120007978"
       },
       {
-        "name": "assdds",
-        "number": "1234"
+        "name": "Plastic holder;PC",
+        "number": "312120007979"
       },
       {
-        "name": "asdad",
-        "number": "111"
+        "name": "Carton;K=K;L395×",
+        "number": "313100007640"
+      },
+      {
+        "name": "Packaging bag;PE;",
+        "number": "313120000003"
+      },
+      {
+        "name": "Partition;A3A;L38",
+        "number": "313130000229"
+      },
+      {
+        "name": "Packaging foam;EP",
+        "number": "313130000230"
+      },
+      {
+        "name": "Label;Blank label",
+        "number": "313150007893"
+      },
+      {
+        "name": "Label;Blank label",
+        "number": "313150008743"
+      },
+      {
+        "name": "Label;Carton label",
+        "number": "313150008869"
+      },
+      {
+        "name": "Label;Product label",
+        "number": "313150008877"
+      },
+      {
+        "name": "Tray;PET;L380×W2",
+        "number": "313160008062"
+      },
+      {
+        "name": "Glue;Heat conduct",
+        "number": "315130007520"
       }
     ]
   }
