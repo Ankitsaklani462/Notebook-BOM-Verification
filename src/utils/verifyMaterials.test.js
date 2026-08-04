@@ -32,6 +32,13 @@ describe('verifyScannedMaterial', () => {
     expect(result.material).toBe('p-1001')
   })
 
+  it('matches when the scanned text contains the required part number along with other details', () => {
+    const result = verifyScannedMaterial('qr-data: P-1001 | steel cover', [{ name: 'Steel Cover', number: 'P-1001' }, { name: 'Aluminum Frame', number: 'P-1002' }])
+
+    expect(result.isMatch).toBe(true)
+    expect(result.material).toBe('qr-data: p-1001 | steel cover')
+  })
+
   it('returns a restart message for camera scans after pass or ng results', () => {
     expect(getCameraScanFeedbackMessage({ isMatch: true })).toBe('PASS — ready for the next scan.')
     expect(getCameraScanFeedbackMessage({ isMatch: false })).toBe('NG — ready for the next scan.')

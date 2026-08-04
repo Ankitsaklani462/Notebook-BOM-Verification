@@ -56,12 +56,47 @@ function getMaterialCandidates(material) {
   return []
 }
 
+function getMaterialTokens(value) {
+  if (!value) {
+    return []
+  }
+
+  const normalizedValue = normalizeMaterial(value)
+
+  if (!normalizedValue) {
+    return []
+  }
+
+  return normalizedValue
+    .split(/[^a-z0-9._/-]+/i)
+    .map((token) => token.trim())
+    .filter(Boolean)
+}
+
+function containsMaterialToken(value, token) {
+  if (!value || !token) {
+    return false
+  }
+
+  const normalizedValue = normalizeMaterial(value)
+  const normalizedToken = normalizeMaterial(token)
+
+  if (!normalizedValue || !normalizedToken) {
+    return false
+  }
+
+  const tokens = getMaterialTokens(normalizedValue)
+
+  return tokens.includes(normalizedToken) || normalizedValue.includes(normalizedToken)
+}
+
 export function verifyScannedMaterial(scannedValue, bomMaterials) {
   const normalizedInput = normalizeMaterial(scannedValue)
   const matchedMaterial = bomMaterials.find((material) => {
-    return getMaterialCandidates(material).some(
-      (candidate) => normalizeMaterial(candidate) === normalizedInput,
-    )
+    return getMaterialCandidates(material).some((candidate) => {
+      const normalizedCandidate = normalizeMaterial(candidate)
+      return normalizedCandidate === normalizedInput || containsMaterialToken(normalizedInput, normalizedCandidate)
+    })
   })
 
   return {
